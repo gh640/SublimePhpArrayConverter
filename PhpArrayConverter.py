@@ -25,8 +25,9 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         self.settings = sublime.load_settings("PhpArrayConverter.sublime-settings")
+        self.is_open_tag_prepended = False
 
-        if self.check_syntax():
+        if self.check_syntax() and self.check_selection():
             self.convert_array(edit)
 
     def check_syntax(self):
@@ -37,10 +38,19 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
         return True
 
+    def check_selection(self):
+        if len(self.view.sel()) > 1:
+            sublime.status_message("PhpArrayConverter doesn't support multiple selection.")
+            return False
+
+        return True
+
     def convert_array(self, edit):
-        filename = self.view.file_name()
-        tokenizer = PhpTokenizer(filename, self.settings)
-        tokenizer.run()
+        code = self.get_text()
+        code = self.add_open_tag(code)
+
+        tokenizer = PhpTokenizer(self.settings)
+        tokenizer.run(code)
 
         if tokenizer.returncode == 1:
             sublime.status_message("PhpArrayConverter tokenizer failed: {}.".format(self.stderr))
@@ -49,21 +59,43 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
         code_generator = ConvertedCoderGenerator()
         code_generator.run(tokenizer.stdout)
 
+        code_converted = code_generator.code_converted
+        code_converted = self.remove_open_tag(code_converted)
+
+        selection = self.view.sel()[0] if self.view.sel()[0] else None
         replacer = TextReplacer()
-        replacer.run(self.view, edit, code_generator.code_converted)
+        replacer.run(self.view, edit, code_converted, selection)
 
         sublime.status_message('PhpArrayConverter completed successfully.')
+
+    def add_open_tag(self, text, open_tag=b'<?php'):
+        if not text.startswith(open_tag):
+            text = open_tag + text;
+            self.is_open_tag_prepended = True
+
+        return text
+
+    def remove_open_tag(self, text, open_tag=b'<?php'):
+        if self.is_open_tag_prepended:
+            text = text[len(open_tag):]
+        return text
+
+    def get_text(self):
+        content = self.view.substr(self.view.sel()[0])
+        if not content:
+            content = self.view.substr(sublime.Region(0, self.view.size()))
+
+        return content.encode('utf-8')
 
 
 class PhpTokenizer(object):
     """Runs php tokenizer.
     """
 
-    def __init__(self, filename, settings):
-        self.filename = filename
+    def __init__(self, settings):
         self.settings = settings
 
-    def run(self):
+    def run(self, text):
         try:
             process = Popen(
                 self.get_php_cmd(),
@@ -73,7 +105,16 @@ class PhpTokenizer(object):
                 stdout=PIPE,
                 stderr=PIPE
             )
-            self.stdout, self.stderr = process.communicate()
+            stdout, stderr = process.communicate(input=text)
+
+            if type(stdout) is bytes:
+                stdout = stdout.decode('utf-8')
+
+            if type(stderr) is bytes:
+                stderr = stderr.decode('utf-8')
+
+            self.stdout, self.stderr = stdout, stderr
+
             self.returncode = process.returncode
         except OSError as e:
             self.stderr = str(e)
@@ -81,7 +122,7 @@ class PhpTokenizer(object):
 
     def get_php_cmd(self):
         tokenizer = os.path.join(os.path.dirname(__file__), 'tokenizer.php')
-        return ['php', tokenizer, self.filename]
+        return ['php', tokenizer]
 
     def get_env(self):
         env = os.environ.copy()
@@ -97,12 +138,11 @@ class ConvertedCoderGenerator(object):
     """
 
     def run(self, stdout):
-        if type(stdout) is bytes:
-            stdout = stdout.decode('utf-8')
-
-        _, tokens = self.parse_json(stdout)
+        tokens = self.parse_json(stdout)
         tokens_normalized = self.normalize_tokens(tokens)
-        self.code_converted = self.gen_converted_code(tokens_normalized)
+        code_converted = self.gen_converted_code(tokens_normalized)
+
+        self.code_converted = code_converted
 
     def parse_json(self, json_string):
         try:
@@ -110,13 +150,12 @@ class ConvertedCoderGenerator(object):
         except Exception as e:
             raise Exception("JSON is not valid.")
 
-        file = json_parsed.get('file')
         tokens = json_parsed.get('tokens')
 
-        if not file or not tokens:
+        if not tokens:
             raise Exception("Passed JSON doesn't have proper properties.")
 
-        return (file, tokens)
+        return tokens
 
     def normalize_tokens(self, tokens):
         return [[t, t, None] if type(t) is str else t for t in tokens]
@@ -192,6 +231,7 @@ class PhpToken(object):
     """
 
     TOKEN_MAP = {
+        'T_OPEN_TAG': 'T_OPEN_TAG',
         'T_ARRAY': 'T_ARRAY',
         'T_WHITESPACE': 'T_WHITESPACE',
         'BRACE_OPEN': '(',

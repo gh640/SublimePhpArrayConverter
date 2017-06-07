@@ -6,16 +6,24 @@ main();
  * Main function.
  */
 function main() {
-    list($filename, $code) = get_code_from_file();
+    $code = get_code_from_stdin();
+    // list($filename, $code) = get_code_from_file();
     $tokens = token_get_all($code);
     $tokens_replaced = replace_tokens($tokens);
 
     $retval = array(
-      'file' => $filename,
+      // 'file' => $filename,
       'tokens' => $tokens_replaced,
     );
 
     print json_encode($retval);
+}
+
+/**
+ * Helper function: get code from stdin.
+ */
+function get_code_from_stdin() {
+    return file_get_contents('php://stdin');
 }
 
 /**
@@ -45,7 +53,7 @@ function get_code_from_file() {
  *   A list of tokens returned by token_get_all().
  */
 function replace_tokens($tokens) {
-    $tokens_replaced = [];
+    $tokens_replaced = array();
     foreach ($tokens as $token) {
         $token_replaced = $token;
         if (is_array($token)) {
@@ -69,6 +77,7 @@ function replace_tokens($tokens) {
  */
 function map_token($token) {
     $map = array(
+        T_OPEN_TAG => 'T_OPEN_TAG',
         T_ARRAY => 'T_ARRAY',
         T_WHITESPACE => 'T_WHITESPACE',
     );
