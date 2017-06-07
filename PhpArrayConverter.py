@@ -25,7 +25,6 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         self.settings = sublime.load_settings("PhpArrayConverter.sublime-settings")
-        print(self.settings.get('path', False))
 
         if self.check_syntax():
             self.convert_array(edit)
