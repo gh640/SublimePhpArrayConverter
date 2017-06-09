@@ -24,7 +24,8 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
     """
 
     def run(self, edit):
-        self.settings = sublime.load_settings("PhpArrayConverter.sublime-settings")
+        self.settings = sublime.load_settings(
+            "PhpArrayConverter.sublime-settings")
         self.is_open_tag_prepended = False
 
         if self.check_syntax() and self.check_selection():
@@ -33,14 +34,16 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
     def check_syntax(self):
         syntax = self.view.settings().get("syntax")
         if syntax.find('PHP.sublime-syntax') == -1:
-            sublime.status_message("PhpArrayConverter works only for PHP files.")
+            sublime.status_message(
+                "PhpArrayConverter works only for PHP files.")
             return False
 
         return True
 
     def check_selection(self):
         if len(self.view.sel()) > 1:
-            sublime.status_message("PhpArrayConverter doesn't support multiple selection.")
+            sublime.status_message(
+                "PhpArrayConverter doesn't support multiple selection.")
             return False
 
         return True
@@ -53,7 +56,8 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
         tokenizer.run(code)
 
         if tokenizer.returncode == 1:
-            sublime.status_message("PhpArrayConverter tokenizer failed: {}.".format(self.stderr))
+            sublime.status_message(
+                "PhpArrayConverter tokenizer failed: {}.".format(self.stderr))
             return
 
         code_generator = ConvertedCoderGenerator()
@@ -70,7 +74,7 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
     def add_open_tag(self, text, open_tag=b'<?php'):
         if not text.startswith(open_tag):
-            text = open_tag + text;
+            text = open_tag + text
             self.is_open_tag_prepended = True
 
         return text
