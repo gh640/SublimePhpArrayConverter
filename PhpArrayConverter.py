@@ -13,10 +13,24 @@ from subprocess import Popen, PIPE
 import sublime
 import sublime_plugin
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 __author__ = 'Goto Hayato'
 __copyright__ = 'Copyright 2017, Goto Hayato'
 __license__ = 'GPL'
+
+
+class PhpArrayConverterConvertEvents(sublime_plugin.EventListener):
+    """EventListener class.
+    """
+
+    def on_pre_save(self, view):
+        """Runs array conversion when a file is being saved.
+        """
+        settings = sublime.load_settings("PhpArrayConverter.sublime-settings")
+        auto_convert_on_save = settings.get("auto_convert_on_save", False)
+
+        if auto_convert_on_save:
+            view.run_command('php_array_converter_convert')
 
 
 class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
