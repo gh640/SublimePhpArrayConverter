@@ -4,9 +4,7 @@
 """
 
 import os
-import sys
 import json
-import io
 from subprocess import Popen, PIPE
 # import threading
 
@@ -86,16 +84,17 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
         sublime.status_message('PhpArrayConverter completed successfully.')
 
-    def add_open_tag(self, text, open_tag=b'<?php'):
+    def add_open_tag(self, text, open_tag='<?php'):
         if not text.startswith(open_tag):
             text = open_tag + text
             self.is_open_tag_prepended = True
 
         return text
 
-    def remove_open_tag(self, text, open_tag=b'<?php'):
+    def remove_open_tag(self, text, open_tag='<?php'):
         if self.is_open_tag_prepended:
             text = text[len(open_tag):]
+
         return text
 
     def get_text(self):
@@ -103,7 +102,7 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
         if not content:
             content = self.view.substr(sublime.Region(0, self.view.size()))
 
-        return content.encode('utf-8')
+        return content
 
 
 class PhpTokenizer(object):
@@ -123,16 +122,10 @@ class PhpTokenizer(object):
                 stdout=PIPE,
                 stderr=PIPE
             )
-            stdout, stderr = process.communicate(input=text)
+            stdout, stderr = process.communicate(input=self.encode(text))
 
-            if type(stdout) is bytes:
-                stdout = stdout.decode('utf-8')
-
-            if type(stderr) is bytes:
-                stderr = stderr.decode('utf-8')
-
-            self.stdout, self.stderr = stdout, stderr
-
+            self.stdout = self.decode(stdout)
+            self.stderr = self.decode(stderr)
             self.returncode = process.returncode
         except OSError as e:
             self.stderr = str(e)
@@ -149,6 +142,12 @@ class PhpTokenizer(object):
             env['PATH'] = self.settings.get('path')
 
         return env
+
+    def encode(self, text):
+        return text.encode('utf-8')
+
+    def decode(self, text):
+        return text.decode('utf-8')
 
 
 class ConvertedCoderGenerator(object):
