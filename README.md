@@ -32,7 +32,7 @@ This packages uses `php` command.
 Run the plugin from the command palette:
 
 1. Open the command palette (ctrl/cmd + shift + p).
-2. Select 'PhpArrayConverter: Convert array'.
+2. Select `PhpArrayConverter: Convert array`.
 
 ### Settings
 
