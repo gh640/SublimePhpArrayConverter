@@ -69,7 +69,7 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
         if tokenizer.returncode == 1:
             sublime.status_message(
-                "PhpArrayConverter tokenizer failed: {}.".format(self.stderr))
+                "PhpArrayConverter tokenizer failed: {}.".format(tokenizer.stderr))
             return
 
         code_generator = ConvertedCoderGenerator()
