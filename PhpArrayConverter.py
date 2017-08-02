@@ -5,7 +5,7 @@
 
 import os
 import json
-from subprocess import Popen, PIPE
+import subprocess
 # import threading
 
 import sublime
@@ -114,14 +114,22 @@ class PhpTokenizer(object):
 
     def run(self, text):
         try:
-            process = Popen(
-                self.get_php_cmd(),
-                env=self.get_env(),
-                shell=sublime.platform() == 'windows',
-                stdin=PIPE,
-                stdout=PIPE,
-                stderr=PIPE
-            )
+            popen_args = {
+                'args': self.get_php_cmd(),
+                'env': self.get_env(),
+                'stdin': subprocess.PIPE,
+                'stdout': subprocess.PIPE,
+                'stderr': subprocess.PIPE,
+            }
+
+            # Prevent cmd.exe window popup on Windows.
+            if sublime.platform() == 'windows':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+                popen_args['startupinfo'] = startupinfo
+
+            process = subprocess.Popen(**popen_args)
             stdout, stderr = process.communicate(input=self.encode(text))
 
             self.stdout = self.decode(stdout)
