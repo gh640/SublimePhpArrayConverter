@@ -1,0 +1,5 @@
+PhpArrayConverter 0.1.3
+=======================
+
+- The bug that the tokenization fails on Windows is fixed. If you still experience the tokenization failure on Windows, feel free to file an issue.
+    https://github.com/gh640/SublimePhpArrayConverter/issues
