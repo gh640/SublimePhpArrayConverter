@@ -1,5 +1,9 @@
-SublimePhpArrayConverter
-------------------------
+    ____  __          ___                          ______                           __
+   / __ \/ /_  ____  /   |  ______________ ___  __/ ____/___  ____ _   _____  _____/ /____  _____
+  / /_/ / __ \/ __ \/ /| | / ___/ ___/ __ `/ / / / /   / __ \/ __ \ | / / _ \/ ___/ __/ _ \/ ___/
+ / ____/ / / / /_/ / ___ |/ /  / /  / /_/ / /_/ / /___/ /_/ / / / / |/ /  __/ /  / /_/  __/ /
+/_/   /_/ /_/ .___/_/  |_/_/  /_/   \__,_/\__, /\____/\____/_/ /_/|___/\___/_/   \__/\___/_/
+           /_/                           /____/
 
 A Sublime Text 3 package which converts PHP array syntax to brackets.
 
@@ -15,7 +19,7 @@ This package needs `php` command to work.
 Usage
 -----
 
-Commands: 
+Commands:
 
 You can run the conversion from the command palette.
 
@@ -24,7 +28,7 @@ You can run the conversion from the command palette.
 
 If you are selecting a part of text when running the command, only arrays in it are targeted. If there's no text selected, all arrays in the active file will be converted.
 
-Settings: 
+Settings:
 
 The default settings are set as below.
 
