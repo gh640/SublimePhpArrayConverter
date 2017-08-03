@@ -113,22 +113,22 @@ class PhpTokenizer(object):
         self.settings = settings
 
     def run(self, text):
+        popen_args = {
+            'args': self.get_php_cmd(),
+            'env': self.get_env(),
+            'stdin': subprocess.PIPE,
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.PIPE,
+        }
+
+        # Prevent cmd.exe window popup on Windows.
+        if sublime.platform() == 'windows':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            popen_args['startupinfo'] = startupinfo
+
         try:
-            popen_args = {
-                'args': self.get_php_cmd(),
-                'env': self.get_env(),
-                'stdin': subprocess.PIPE,
-                'stdout': subprocess.PIPE,
-                'stderr': subprocess.PIPE,
-            }
-
-            # Prevent cmd.exe window popup on Windows.
-            if sublime.platform() == 'windows':
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startupinfo.wShowWindow = subprocess.SW_HIDE
-                popen_args['startupinfo'] = startupinfo
-
             process = subprocess.Popen(**popen_args)
             stdout, stderr = process.communicate(input=self.encode(text))
 
