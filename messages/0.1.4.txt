@@ -1,0 +1,4 @@
+PhpArrayConverter 0.1.4
+=======================
+
+- The bug that the tokenization fails with the packed package is fixed.
