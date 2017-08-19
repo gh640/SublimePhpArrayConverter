@@ -6,7 +6,6 @@
 import os
 import json
 import subprocess
-# import threading
 
 import sublime
 import sublime_plugin
@@ -66,26 +65,32 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
 
     def convert_array(self, edit):
         if self.force_whole:
-            region_orig = sublime.Region(0, self.view.size())
+            region_orig = self.get_whole_region()
         else:
             region_orig = self.get_region()
 
-        code_orig = self.get_text(region_orig)
+        code_orig = self.view.substr(region_orig)
         code_orig = self.add_open_tag(code_orig)
 
         settings = sublime.load_settings(SETTINGS_KEY)
+
         tokenizer = PhpTokenizer({'path': settings.get('path', False)})
         tokenizer.run(code_orig)
 
-        if tokenizer.returncode != 0:
-            params = {'error': tokenizer.stderr}
+        if not tokenizer.success:
+            params = {'error': tokenizer.error}
             self.show_message('{0[pkg]} tokenizer failed: {0[error]}', params)
             return
 
         generator = ConvertedCoderGenerator()
-        generator.run(tokenizer.stdout)
+        generator.run(tokenizer.output)
 
-        code_converted = generator.code_converted
+        if not generator.success:
+            params = {'error': generator.error}
+            self.show_message('{0[pkg]} code converter failed: {0[error]}', params)
+            return
+
+        code_converted = generator.output
         code_converted = self.remove_open_tag(code_converted)
 
         self.view.replace(edit, region_orig, code_converted)
@@ -104,13 +109,14 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
         return text
 
     def get_region(self):
-        region = self.view.sel()[0]
-        if region.empty():
-            region = sublime.Region(0, self.view.size())
-        return region
+        if len(self.view.sel()) > 0:
+            region = self.view.sel()[0]
+            if not region.empty():
+                return region
+        return self.get_whole_region()
 
-    def get_text(self, region):
-        return self.view.substr(region)
+    def get_whole_region(self):
+        return sublime.Region(0, self.view.size())
 
     def show_message(self, message, params=None):
         if not params:
@@ -119,7 +125,7 @@ class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
         sublime.status_message(message.format(params))
 
 
-class PhpTokenizer(object):
+class PhpTokenizer:
     """Runs php tokenizer.
     """
 
@@ -127,6 +133,20 @@ class PhpTokenizer(object):
         self.settings = settings
 
     def run(self, text):
+        popen_args = self.prepare_subprocess_args()
+
+        try:
+            process = subprocess.Popen(**popen_args)
+            stdout, stderr = process.communicate(input=self.encode(text))
+        except OSError as e:
+            self.error = str(e)
+            self.success = False
+        else:
+            self.output = self.decode(stdout)
+            self.error = self.decode(stderr)
+            self.success = True
+
+    def prepare_subprocess_args(self):
         popen_args = {
             'args': self.get_php_cmd(),
             'env': self.get_env(),
@@ -136,22 +156,13 @@ class PhpTokenizer(object):
         }
 
         # Prevent cmd.exe window popup on Windows.
-        if sublime.platform() == 'windows':
+        if is_windows():
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
             popen_args['startupinfo'] = startupinfo
 
-        try:
-            process = subprocess.Popen(**popen_args)
-            stdout, stderr = process.communicate(input=self.encode(text))
-
-            self.stdout = self.decode(stdout)
-            self.stderr = self.decode(stderr)
-            self.returncode = process.returncode
-        except OSError as e:
-            self.stderr = str(e)
-            self.returncode = 1
+        return popen_args
 
     def get_php_cmd(self):
         tokenizer = os.path.join(os.path.dirname(__file__), 'tokenizer.php')
@@ -172,22 +183,27 @@ class PhpTokenizer(object):
         return text.decode('utf-8')
 
 
-class ConvertedCoderGenerator(object):
+class ConvertedCoderGenerator:
     """Generates array-converted php code.
     """
 
-    def run(self, stdout):
-        tokens = self.parse_json(stdout)
-        tokens_normalized = self.normalize_tokens(tokens)
-        code_converted = self.gen_converted_code(tokens_normalized)
-
-        self.code_converted = code_converted
+    def run(self, json_string):
+        try:
+            tokens = self.parse_json(json_string)
+            tokens_normalized = self.normalize_tokens(tokens)
+            code_converted = self.gen_converted_code(tokens_normalized)
+        except Exception as e:
+            self.error = str(e)
+            self.success = False
+        else:
+            self.output = code_converted
+            self.success = True
 
     def parse_json(self, json_string):
         try:
             json_parsed = json.loads(json_string)
         except Exception as e:
-            raise Exception("JSON is not valid.")
+            raise Exception('JSON is not valid.')
 
         tokens = json_parsed.get('tokens')
 
@@ -253,17 +269,7 @@ class ConvertedCoderGenerator(object):
         return ''.join(x[1] for x in tokens_converted)
 
 
-class TextReplacer(object):
-    """Replaces text with specified string.
-    """
-
-    def run(self, view, edit, text, selection=None):
-        if not selection:
-            selection = sublime.Region(0, view.size())
-        view.replace(edit, selection, text)
-
-
-class PhpToken(object):
+class PhpToken:
     """Checks php tokens.
     """
 
@@ -278,3 +284,7 @@ class PhpToken(object):
     @classmethod
     def equals(cls, code, value):
         return cls.TOKEN_MAP[code] == value
+
+
+def is_windows():
+    return sublime.platform() == 'windows'

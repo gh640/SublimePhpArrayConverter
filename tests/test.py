@@ -55,7 +55,7 @@ class TestPhpTokenizer(TestCase):
         expected_beginning = '{"tokens":[["T_OPEN_TAG","<?php ",1]'
 
         self.tokenizer.run(text)
-        result = self.tokenizer.stdout
+        result = self.tokenizer.output
 
         self.assertTrue(result.startswith(expected_beginning))
 
@@ -72,6 +72,6 @@ class TestConvertedCoderGenerator(TestCase):
         expected = """<?php\n\n$a = [\n  'foo' => [(string) 5, (int) 10.5],\n  'bar' => 300,\n];\n"""
 
         self.code_generator.run(tokenizer_stdout)
-        actual = self.code_generator.code_converted
+        actual = self.code_generator.output
 
         self.assertEqual(actual, expected)
