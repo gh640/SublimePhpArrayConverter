@@ -23,13 +23,6 @@ class TestPhpArrayConverterConvertCommand(TestCase):
             self.view.window().focus_view(self.view)
             self.view.window().run_command("close_file")
 
-    def setText(self, string):
-        self.view.run_command("insert", {"characters": string})
-
-    def getText(self):
-        content = self.view.substr(sublime.Region(0, self.view.size()))
-        return content
-
     def test_simple_array(self):
         text = '<?php $a = array();'
         expected = '<?php $a = [];'
@@ -37,6 +30,13 @@ class TestPhpArrayConverterConvertCommand(TestCase):
         self.setText(text)
         self.view.run_command('php_array_converter_convert')
         self.assertEqual(self.getText(), expected)
+
+    def setText(self, string):
+        self.view.run_command("insert", {"characters": string})
+
+    def getText(self):
+        content = self.view.substr(sublime.Region(0, self.view.size()))
+        return content
 
 
 PhpArrayConverter = sys.modules["PhpArrayConverter.PhpArrayConverter"]
