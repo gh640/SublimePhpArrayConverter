@@ -16,93 +16,107 @@ __author__ = 'Goto Hayato'
 __copyright__ = 'Copyright 2017, Goto Hayato'
 __license__ = 'MIT'
 
+SETTINGS_KEY = 'PhpArrayConverter.sublime-settings'
+
 
 class PhpArrayConverterConvertEvents(sublime_plugin.EventListener):
-    """EventListener class.
+    """Sublime text EventListener class.
     """
 
     def on_pre_save(self, view):
         """Runs array conversion when a file is being saved.
         """
-        settings = sublime.load_settings("PhpArrayConverter.sublime-settings")
+        settings = sublime.load_settings(SETTINGS_KEY)
         auto_convert_on_save = settings.get("auto_convert_on_save", False)
 
         if auto_convert_on_save:
-            view.run_command('php_array_converter_convert')
+            params = {'force_whole': True}
+            view.run_command('php_array_converter_convert', params)
 
 
 class PhpArrayConverterConvertCommand(sublime_plugin.TextCommand):
-    """Sublime text command for php array conversion.
+    """Sublime text TextCommand for php array conversion.
     """
 
-    def run(self, edit):
-        self.settings = sublime.load_settings(
-            "PhpArrayConverter.sublime-settings")
+    OPEN_TAG = '<?php'
+
+    def run(self, edit, force_whole=False):
+        """Runs the command.
+        """
+        self.force_whole = force_whole
         self.is_open_tag_prepended = False
 
         if self.check_syntax() and self.check_selection():
             self.convert_array(edit)
 
     def check_syntax(self):
-        syntax = self.view.settings().get("syntax")
-        if syntax.find('PHP.sublime-syntax') == -1:
-            sublime.status_message(
-                "PhpArrayConverter works only for PHP files.")
+        if not self.is_php():
+            self.show_message('{0[pkg]} works only for PHP files.')
             return False
-
         return True
+
+    def is_php(self):
+        return 'PHP' in self.view.settings().get('syntax')
 
     def check_selection(self):
         if len(self.view.sel()) > 1:
-            sublime.status_message(
-                "PhpArrayConverter doesn't support multiple selection.")
+            self.show_message("{0[pkg]} doesn't support multiple selection.")
             return False
-
         return True
 
     def convert_array(self, edit):
-        code = self.get_text()
-        code = self.add_open_tag(code)
+        if self.force_whole:
+            region_orig = sublime.Region(0, self.view.size())
+        else:
+            region_orig = self.get_region()
 
-        tokenizer = PhpTokenizer(self.settings)
-        tokenizer.run(code)
+        code_orig = self.get_text(region_orig)
+        code_orig = self.add_open_tag(code_orig)
 
-        if tokenizer.returncode == 1:
-            sublime.status_message(
-                "PhpArrayConverter tokenizer failed: {}.".format(tokenizer.stderr))
+        settings = sublime.load_settings(SETTINGS_KEY)
+        tokenizer = PhpTokenizer({'path': settings.get('path', False)})
+        tokenizer.run(code_orig)
+
+        if tokenizer.returncode != 0:
+            params = {'error': tokenizer.stderr}
+            self.show_message('{0[pkg]} tokenizer failed: {0[error]}', params)
             return
 
-        code_generator = ConvertedCoderGenerator()
-        code_generator.run(tokenizer.stdout)
+        generator = ConvertedCoderGenerator()
+        generator.run(tokenizer.stdout)
 
-        code_converted = code_generator.code_converted
+        code_converted = generator.code_converted
         code_converted = self.remove_open_tag(code_converted)
 
-        selection = self.view.sel()[0] if self.view.sel()[0] else None
-        replacer = TextReplacer()
-        replacer.run(self.view, edit, code_converted, selection)
+        self.view.replace(edit, region_orig, code_converted)
 
-        sublime.status_message('PhpArrayConverter completed successfully.')
+        self.show_message('{0[pkg]} completed successfully.')
 
-    def add_open_tag(self, text, open_tag='<?php'):
-        if not text.startswith(open_tag):
-            text = open_tag + text
+    def add_open_tag(self, text):
+        if not text.startswith(self.OPEN_TAG):
+            text = self.OPEN_TAG + text
             self.is_open_tag_prepended = True
-
         return text
 
-    def remove_open_tag(self, text, open_tag='<?php'):
+    def remove_open_tag(self, text):
         if self.is_open_tag_prepended:
-            text = text[len(open_tag):]
-
+            text = text[len(self.OPEN_TAG):]
         return text
 
-    def get_text(self):
-        content = self.view.substr(self.view.sel()[0])
-        if not content:
-            content = self.view.substr(sublime.Region(0, self.view.size()))
+    def get_region(self):
+        region = self.view.sel()[0]
+        if region.empty():
+            region = sublime.Region(0, self.view.size())
+        return region
 
-        return content
+    def get_text(self, region):
+        return self.view.substr(region)
+
+    def show_message(self, message, params=None):
+        if not params:
+            params = {}
+        params['pkg'] = 'PhpArrayConverter'
+        sublime.status_message(message.format(params))
 
 
 class PhpTokenizer(object):
@@ -186,8 +200,6 @@ class ConvertedCoderGenerator(object):
         return [[t, t, None] if type(t) is str else t for t in tokens]
 
     def gen_converted_code(self, tokens):
-        """Generates code whose array syntax is converted.
-        """
         replacements = {}
         for i, t1 in enumerate(tokens):
             if PhpToken.equals('T_ARRAY', t1[0]):
