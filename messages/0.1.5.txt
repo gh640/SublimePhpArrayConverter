@@ -1,0 +1,4 @@
+PhpArrayConverter 0.1.5
+=======================
+
+- The bug that only selected text is converted when a file is saved.

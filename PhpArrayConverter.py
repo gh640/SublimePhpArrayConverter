@@ -10,7 +10,7 @@ import subprocess
 import sublime
 import sublime_plugin
 
-__version__ = '0.1.4'
+__version__ = '0.1.5'
 __author__ = 'Goto Hayato'
 __copyright__ = 'Copyright 2017, Goto Hayato'
 __license__ = 'MIT'
