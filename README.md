@@ -53,6 +53,11 @@ These values can be overwritten through `Preferences` - `Package settings` - `Ph
 - `path` is a value which is converted to the environment variable `$PATH` when `php` command to tokenize the php code is run. Change this value to specify which `php` should be used in your environment.
 
 
+## Links
+
+- [`PhpArrayConverter`](https://github.com/gh640/SublimePhpArrayConverter): A Sublime Text 3 package which converts PHP array syntax.
+
+
 ## License
 
 Licensed under the MIT license.
