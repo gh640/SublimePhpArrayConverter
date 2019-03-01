@@ -55,7 +55,7 @@ These values can be overwritten through `Preferences` - `Package settings` - `Ph
 
 ## Links
 
-- [`PhpArrayConverter`](https://github.com/gh640/SublimePhpArrayConverter): A Sublime Text 3 package which converts PHP array syntax.
+- [`ComposerPackageInfo`](https://github.com/gh640/SublimeComposerPackageInfo): A Sublime Text 3 package which shows Composer packages information in a popup.
 
 
 ## License
