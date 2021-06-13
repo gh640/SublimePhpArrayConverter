@@ -1,6 +1,6 @@
 # SublimePhpArrayConverter
 
-A Sublime Text 3 package which converts PHP array syntax to brackets.
+A Sublime Text 3 / 4 package which converts PHP array syntax to brackets.
 
 ![ScreenShot](https://raw.github.com/gh640/SublimePhpArrayConverter/master/assets/screenshot.gif)
 
