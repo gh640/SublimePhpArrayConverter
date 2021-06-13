@@ -10,9 +10,9 @@ import subprocess
 import sublime
 import sublime_plugin
 
-__version__ = '0.1.5'
+__version__ = '0.2.0'
 __author__ = 'Goto Hayato'
-__copyright__ = 'Copyright 2017, Goto Hayato'
+__copyright__ = 'Copyright 2017 - 2021, Goto Hayato'
 __license__ = 'MIT'
 
 SETTINGS_KEY = 'PhpArrayConverter.sublime-settings'
